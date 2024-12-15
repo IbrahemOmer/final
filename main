@@ -1,0 +1,10 @@
+from poll_gui import PollApp
+import tkinter as tk
+
+def main():
+    root = tk.Tk()
+    app = PollApp(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
