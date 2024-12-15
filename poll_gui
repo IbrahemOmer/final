@@ -1,0 +1,176 @@
+import tkinter as tk
+from tkinter import ttk
+import random
+
+
+class PollApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Poll Application")
+        self.root.geometry("550x750")
+        self.root.resizable(True, True)
+
+        self.candidates = {}
+        self.state_populations = {
+            "Alabama": 5024279,
+            "Alaska": 733391,
+            "Arizona": 7151502,
+            "Arkansas": 3011524,
+            "California": 39538223,
+            "Colorado": 5773714,
+            "Connecticut": 3605944,
+            "Delaware": 989948,
+            "Florida": 21538187,
+            "Georgia": 10711908,
+            "Hawaii": 1455271,
+            "Idaho": 1839106,
+            "Illinois": 12812508,
+            "Indiana": 6785528,
+            "Iowa": 3190369,
+            "Kansas": 2937880,
+            "Kentucky": 4505836,
+            "Louisiana": 4657757,
+            "Maine": 1362359,
+            "Maryland": 6177224,
+            "Massachusetts": 7029917,
+            "Michigan": 10077331,
+            "Minnesota": 5706494,
+            "Mississippi": 2961279,
+            "Missouri": 6154913,
+            "Montana": 1084225,
+            "Nebraska": 1961504,
+            "Nevada": 3104614,
+            "New Hampshire": 1377529,
+            "New Jersey": 9288994,
+            "New Mexico": 2117522,
+            "New York": 20201249,
+            "North Carolina": 10439388,
+            "North Dakota": 779094,
+            "Ohio": 11799448,
+            "Oklahoma": 3959353,
+            "Oregon": 4237256,
+            "Pennsylvania": 13002700,
+            "Rhode Island": 1097379,
+            "South Carolina": 5118425,
+            "South Dakota": 886667,
+            "Tennessee": 6910840,
+            "Texas": 29145505,
+            "Utah": 3271616,
+            "Vermont": 643077,
+            "Virginia": 8631393,
+            "Washington": 7705281,
+            "West Virginia": 1793716,
+            "Wisconsin": 5893718,
+            "Wyoming": 576851
+        }
+
+        # UI Components
+        self.label_candidate = tk.Label(root, text="Enter Candidate Name:", font=("Helvetica", 12))
+        self.label_candidate.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+
+        self.entry_candidate = tk.Entry(root, width=30, font=("Helvetica", 12))
+        self.entry_candidate.grid(row=0, column=1, padx=10, pady=5, sticky="w")
+
+        self.add_button = tk.Button(root, text="Add Candidate", command=self.add_candidate, font=("Helvetica", 12))
+        self.add_button.grid(row=1, column=0, columnspan=2, pady=10)
+
+        # Listbox to show added candidates
+        self.candidate_listbox = tk.Listbox(root, width=40, height=5, font=("Helvetica", 12))
+        self.candidate_listbox.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="w")
+
+        self.label_state = tk.Label(root, text="Select State:", font=("Helvetica", 12))
+        self.label_state.grid(row=3, column=0, padx=10, pady=5, sticky="w")
+
+        self.state_combobox = ttk.Combobox(root, values=list(self.state_populations.keys()), state="readonly", width=30,
+                                           font=("Helvetica", 12))
+        self.state_combobox.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+
+        self.randomize_button = tk.Button(root, text="Randomize Votes", command=self.randomize_votes,
+                                          font=("Helvetica", 12))
+        self.randomize_button.grid(row=4, column=0, columnspan=2, pady=10)
+
+        # Reset button
+        self.reset_button = tk.Button(root, text="Reset Poll", command=self.reset_poll, font=("Helvetica", 12))
+        self.reset_button.grid(row=7, column=0, columnspan=2, pady=10)
+
+        self.winner_display_label = tk.Label(root, text="", font=("Helvetica", 20, "bold"), fg="green")
+        self.winner_display_label.grid(row=5, column=0, columnspan=2, pady=20, sticky="nsew")
+
+        self.tree = ttk.Treeview(root, columns=["Candidate", "State", "Votes"], show="headings", height=5)
+        self.tree.grid(row=6, column=0, columnspan=2, padx=10, pady=10)
+
+        self.tree.heading("Candidate", text="Candidate")
+        self.tree.heading("State", text="State")
+        self.tree.heading("Votes", text="Votes")
+
+        self.root.grid_rowconfigure(0, weight=1, uniform="group1")
+        self.root.grid_rowconfigure(1, weight=1, uniform="group1")
+        self.root.grid_rowconfigure(2, weight=2, uniform="group1")
+        self.root.grid_rowconfigure(3, weight=1, uniform="group1")
+        self.root.grid_rowconfigure(4, weight=1, uniform="group1")
+        self.root.grid_rowconfigure(5, weight=1, uniform="group1")
+        self.root.grid_rowconfigure(6, weight=2, uniform="group1")
+
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=2)
+
+    def add_candidate(self):
+        candidate_name = self.entry_candidate.get().strip()
+
+        if not candidate_name:
+            return
+
+        if candidate_name in self.candidates:
+            return
+
+        self.candidates[candidate_name] = {state: 0 for state in self.state_populations}
+
+        self.candidate_listbox.insert(tk.END, candidate_name)
+        self.entry_candidate.delete(0, tk.END)
+
+    def randomize_votes(self):
+        selected_state = self.state_combobox.get()
+
+        if not selected_state or not self.candidates:
+            return
+
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        total_votes = {}
+
+        for candidate in self.candidates:
+            vote_count = random.randint(0, self.state_populations[selected_state] // len(self.candidates))
+            self.candidates[candidate][selected_state] = vote_count
+            self.tree.insert("", "end", values=(candidate, selected_state, vote_count))
+            total_votes[candidate] = vote_count
+
+        self.determine_winner(selected_state, total_votes)
+
+    def determine_winner(self, state, total_votes):
+        max_votes = -1
+        winner = None
+
+        for candidate, votes in total_votes.items():
+            if votes > max_votes:
+                max_votes = votes
+                winner = candidate
+
+        if winner:
+            self.winner_display_label.config(text=f"CONGRATULATIONS {winner}!\n{max_votes} Votes!")
+
+    def reset_poll(self):
+        self.candidates.clear()
+        self.candidate_listbox.delete(0, tk.END)
+
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        self.winner_display_label.config(text="")
+
+        self.state_combobox.set("")
+
+        self.entry_candidate.delete(0, tk.END)
+
+
+
